@@ -1,18 +1,23 @@
 package com.zosh.configuration;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.hibernate.sql.ast.tree.expression.Collation;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 @Configuration
 public class SecurityConfig {
@@ -24,33 +29,35 @@ public class SecurityConfig {
     ) throws Exception {
 
         return http
-                // ✅ Stateless session (JWT)
+
                 .sessionManagement(management ->
                         management.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // ✅ Authorization rules
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/super-admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/**").authenticated()
+                .authorizeHttpRequests(Authorize ->
+                        Authorize.requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/api/super-admin/**")
+                        .hasRole("ADMIN")
                         .anyRequest().permitAll()
                 )
 
-                // ✅ JWT Filter
                 .addFilterBefore(
                         new JwtValidator(),
                         BasicAuthenticationFilter.class
                 )
 
-                // ✅ CSRF disable
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // ✅ CORS config
                 .cors(cors ->
                         cors.configurationSource(corsConfigurationSource)
                 )
 
                 .build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
     }
 
     // ✅ CORS Configuration
@@ -67,10 +74,11 @@ public class SecurityConfig {
                                 "http://localhost:3000"
                         )
                 );
-                cfg.addAllowedOriginPattern("*");
-                cfg.addAllowedHeader("*");
-                cfg.addAllowedMethod("*");
+                cfg.setAllowedMethods(Collections.singletonList("*"));
                 cfg.setAllowCredentials(true);
+                cfg.setAllowedHeaders(Collections.singletonList("*"));
+                cfg.setExposedHeaders(Arrays.asList("Authorization"));
+                cfg.setMaxAge(3600L);
                 return cfg;
             }
         };

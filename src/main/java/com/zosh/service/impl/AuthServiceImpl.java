@@ -1,6 +1,7 @@
 package com.zosh.service.impl;
 
 import com.zosh.configuration.JwtProvider;
+import com.zosh.domain.UserRole;
 import com.zosh.exceptions.UserException;
 import com.zosh.modal.User;
 import com.zosh.payload.dto.UserDto;
@@ -8,8 +9,12 @@ import com.zosh.payload.response.AuthResponse;
 import com.zosh.repository.UserRepository;
 import com.zosh.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,25 @@ public class AuthServiceImpl implements AuthService {
         if(user != null){
             throw new UserException("email id alreday registered ");
         }
+
+        if(userDto.getRole().equals(UserRole.ROLE_ADMIN)){
+            throw new UserException("role admin is not allowed");
+        }
+
+        User newUser = new User();
+        newUser.setEmail(userDto.getEmail());
+        newUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
+        newUser.setRole(userDto.getRole());
+        newUser.setFullName(userDto.getFullName());
+        newUser.setPhone(userDto.getPhone());
+        newUser.setLastLogin(LocalDateTime.now());
+
+        newUser.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(newUser);
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(userDto.getEmail(), userDto.getPassword());
+
         return null;
     }
 

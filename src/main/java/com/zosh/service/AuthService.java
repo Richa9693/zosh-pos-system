@@ -7,5 +7,5 @@ import com.zosh.payload.response.AuthResponse;
 public interface AuthService {
 
     AuthResponse signup(UserDto userDto) throws UserException;
-    AuthResponse login(UserDto userDto);
+    AuthResponse login(UserDto userDto) throws UserException;
 }

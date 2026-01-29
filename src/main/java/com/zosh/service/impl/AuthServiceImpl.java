@@ -34,28 +34,34 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse signup(UserDto userDto) throws UserException {
-        User user = userRepository.findByEmail(userDto.getEmail());
-        if(user != null){
-            throw new UserException("email id alreday registered ");
-        }
 
-        if(userDto.getRole().equals(UserRole.ROLE_ADMIN)){
-            throw new UserException("role admin is not allowed");
+        User user = userRepository.findByEmail(userDto.getEmail());
+        if (user != null) {
+            throw new UserException("email id already registered");
         }
 
         User newUser = new User();
+        newUser.setFullName(userDto.getFullName());        // ✅
         newUser.setEmail(userDto.getEmail());
-        newUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
-        newUser.setRole(userDto.getRole());
-        newUser.setFullName(userDto.getFullName());
         newUser.setPhone(userDto.getPhone());
-        newUser.setLastLogin(LocalDateTime.now());
-
+        newUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
+        newUser.setRole(UserRole.ROLE_USER);               // ✅ safe
+        newUser.setCreatedAt(LocalDateTime.now());         // ✅
         newUser.setUpdatedAt(LocalDateTime.now());
+        newUser.setLastLogin(LocalDateTime.now());
 
         User savedUser = userRepository.save(newUser);
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(userDto.getEmail(), userDto.getPassword());
+        UserDetails userDetails =
+                customUserImplementation.loadUserByUsername(savedUser.getEmail());
+
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String jwt = jwtProvider.generateToken(authentication);
@@ -65,7 +71,7 @@ public class AuthServiceImpl implements AuthService {
         authResponse.setMessage("Registered Successfully");
         authResponse.setUser(UserMapper.toDto(savedUser));
 
-        return null;
+        return authResponse;   // 🔥🔥🔥 FIXED
     }
 
     @Override

@@ -34,12 +34,12 @@ public class SecurityConfig {
                         management.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                .authorizeHttpRequests(Authorize ->
-                        Authorize.requestMatchers("/api/**").authenticated()
-                        .requestMatchers("/api/super-admin/**")
-                        .hasRole("ADMIN")
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/super-admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/users/**").authenticated()
                         .anyRequest().permitAll()
                 )
+
 
                 .addFilterBefore(
                         new JwtValidator(),
@@ -61,7 +61,6 @@ public class SecurityConfig {
     }
 
     // ✅ CORS Configuration
-
     private CorsConfigurationSource corsConfigurationSource() {
         return new CorsConfigurationSource() {
 
